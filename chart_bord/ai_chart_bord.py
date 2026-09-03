@@ -1,0 +1,54 @@
+import mysql.connector
+import pandas as pd
+
+conn = mysql.connector.connect(
+    user='root',
+    host='localhost',
+    database='customer',
+    password='Aniket@132'
+)
+
+customer_query = ('select * from customer_fixed')
+sales_query = ('select * from sales_fixed')
+
+customer_data = pd.read_sql(customer_query,conn)
+sales_data = pd.read_sql(sales_query,conn)
+
+customer_table_clean = customer_data.replace(r'^\s*$', pd.NA, regex=True)
+count_the_empty_space = customer_table_clean.isna().sum()
+sales_table_clean = sales_data.replace(r'^\s*$', pd.NA, regex=True)
+count_the_empty_row = sales_table_clean.isna().sum()
+
+sales_data['Rating'] = pd.to_numeric(sales_data['Rating'], errors='coerce')
+fill_null = sales_data['Rating'].fillna(sales_data['Rating'].median())
+
+drop_colums = sales_data.drop(columns=['Review_Text','Coupon_Code'])
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder,StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.cluster import KMeans
+
+customer_data['Total_Orders'] = pd.to_numeric(customer_data['Total_Orders'], errors='coerce')
+customer_data['Total_Spent'] = pd.to_numeric(customer_data['Total_Spent'], errors='coerce')
+customer_data['AverageOrderValue'] = (
+    customer_data['Total_Spent'] / customer_data['Total_Orders'].replace(0, pd.NA)
+)
+
+features = ['Total_Orders', 'Total_Spent', 'AverageOrderValue']
+X = customer_data[features].fillna(customer_data[features].median())
+
+scale = StandardScaler()
+
+x_saled = scale.fit_transform(X)
+
+k_means = KMeans(
+    n_clusters=4,
+    random_state=42,
+    n_init=10
+)
+
+customer_data['Segment'] = k_means.fit_predict(x_saled)
+
+print(customer_data['Segment'])
