@@ -107,3 +107,27 @@ model = RandomForestClassifier(
 model.fit(X_train,y_train)
 
 classifer_predict = model.predict(X_test)
+
+print(sales_data.columns)
+
+
+from sklearn.ensemble import IsolationForest
+
+feature=[
+    'Total_Amount',
+    'Coupon_Discount',
+    'Quantity'
+]
+
+X = sales_data[feature]
+
+models = IsolationForest(
+    contamination= 0.05,
+    random_state=42
+)
+
+sales_data['Anomaly'] = models.fit_predict(X)
+
+anomaly = sales_data[sales_data['Anomaly'] == -1]
+
+print(anomaly.head(15))
